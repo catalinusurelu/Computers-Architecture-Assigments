@@ -1,0 +1,15 @@
+reset
+
+set terminal postscript eps enhanced color
+set output "plots/opteron_plots.eps"
+set title "Opteron analysis"
+set xlabel "Size (matrix width/height)"
+set ylabel "Time (s)"
+
+
+plot 'data/opteron_blas' using 1:2 lt 1 lw 2 lc 1 title 'Opteron blas' with lines, \
+     'data/opteron_neoptimizat' using 1:2 lt 1 lw 2 lc 2 title 'Opteron neoptimizat' with lines, \
+     'data/opteron_optimizat' using 1:2 lt 1 lw 2 lc 3 title 'Opteron optimizat' with lines, \
+     'data/opteron_optimizat_flags' using 1:2 lt 1 lw 2 lc 4 title 'Opteron optimizat flags' with lines
+
+

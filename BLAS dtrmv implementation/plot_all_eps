@@ -1,0 +1,24 @@
+reset
+
+set terminal postscript eps enhanced color "Helvetica" 16
+set output "plots/all_plots.eps"
+set title "General analysis"
+set xlabel "Size (matrix width/height)"
+set ylabel "Time (s)"
+set key left top
+
+
+plot 'data/nehalem_blas' using 1:2 lt 1 lw 2 lc 1 title 'Nehalem blas' with lines, \
+     'data/nehalem_neoptimizat' using 1:2 lt 1 lw 2 lc 2 title 'Nehalem neoptimizat' with lines, \
+     'data/nehalem_optimizat' using 1:2 lt 1 lw 2 lc 3 title 'Nehalem optimizat' with lines, \
+     'data/nehalem_optimizat_flags' using 1:2 lt 1 lw 2 lc 4 title 'Nehalem optimizat flags' with lines, \
+     'data/opteron_blas' using 1:2 lt 2 lw 2 lc 1 title 'Opteron blas' with lines, \
+     'data/opteron_neoptimizat' using 1:2 lt 2 lw 2 lc 2 title 'Opteron neoptimizat' with lines, \
+     'data/opteron_optimizat' using 1:2 lt 2 lw 2 lc 3 title 'Opteron optimizat' with lines, \
+     'data/opteron_optimizat_flags' using 1:2 lt 2 lw 2 lc 4 title 'Opteron optimizat flags' with lines, \
+     'data/quad_blas' using 1:2 lt 4 lw 2  lc 1 title 'Quad blas' with lines, \
+     'data/quad_neoptimizat' using 1:2 lt 4 lw 2 lc 2 title 'Quad neoptimizat' with lines, \
+     'data/quad_optimizat' using 1:2 lt 4 lw 2 lc 3 title 'Quad optimizat' with lines, \
+     'data/quad_optimizat_flags' using 1:2 lt 4 lw 2 lc 4 title 'Quad optimizat flags' with lines
+
+

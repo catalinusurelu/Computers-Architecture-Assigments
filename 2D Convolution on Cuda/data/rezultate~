@@ -1,0 +1,142 @@
+-----------------
+Test for matrix size 5X5 = 25
+Timp execuție kernel: 0.044000 ms
+Timp execuție kernel cu memorie partajată: 0.020000 ms
+Timp execuție CPU: 0.003000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 39X35 = 1365
+Timp execuție kernel: 0.048000 ms
+Timp execuție kernel cu memorie partajată: 0.023000 ms
+Timp execuție CPU: 0.239000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 59X58 = 3422
+Timp execuție kernel: 0.049000 ms
+Timp execuție kernel cu memorie partajată: 0.025000 ms
+Timp execuție CPU: 0.614000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 81X92 = 7452
+Timp execuție kernel: 0.053000 ms
+Timp execuție kernel cu memorie partajată: 0.028000 ms
+Timp execuție CPU: 1.346000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 116X109 = 12644
+Timp execuție kernel: 0.060000 ms
+Timp execuție kernel cu memorie partajată: 0.037000 ms
+Timp execuție CPU: 2.293000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 150X137 = 20550
+Timp execuție kernel: 0.072000 ms
+Timp execuție kernel cu memorie partajată: 0.052000 ms
+Timp execuție CPU: 3.869000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 159X164 = 26076
+Timp execuție kernel: 0.076000 ms
+Timp execuție kernel cu memorie partajată: 0.062000 ms
+Timp execuție CPU: 4.751000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 204X197 = 40188
+Timp execuție kernel: 0.089000 ms
+Timp execuție kernel cu memorie partajată: 0.082000 ms
+Timp execuție CPU: 7.332000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 229X208 = 47632
+Timp execuție kernel: 0.097000 ms
+Timp execuție kernel cu memorie partajată: 0.094000 ms
+Timp execuție CPU: 8.893000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 238X254 = 60452
+Timp execuție kernel: 0.118000 ms
+Timp execuție kernel cu memorie partajată: 0.113000 ms
+Timp execuție CPU: 11.052000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 275X255 = 70125
+Timp execuție kernel: 0.135000 ms
+Timp execuție kernel cu memorie partajată: 0.128000 ms
+Timp execuție CPU: 13.087000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 293X285 = 83505
+Timp execuție kernel: 0.156000 ms
+Timp execuție kernel cu memorie partajată: 0.149000 ms
+Timp execuție CPU: 15.287000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 314X314 = 98596
+Timp execuție kernel: 0.183000 ms
+Timp execuție kernel cu memorie partajată: 0.174000 ms
+Timp execuție CPU: 18.083000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 333X338 = 112554
+Timp execuție kernel: 0.209000 ms
+Timp execuție kernel cu memorie partajată: 0.196000 ms
+Timp execuție CPU: 20.684000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 359X371 = 133189
+Timp execuție kernel: 0.242000 ms
+Timp execuție kernel cu memorie partajată: 0.232000 ms
+Timp execuție CPU: 24.395000 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 381X395 = 150495
+Timp execuție kernel: 0.268000 ms
+Timp execuție kernel cu memorie partajată: 0.515000 ms
+Timp execuție CPU: 27.919001 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 427X414 = 176778
+Timp execuție kernel: 0.316000 ms
+Timp execuție kernel cu memorie partajată: 0.296000 ms
+Timp execuție CPU: 33.564999 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 442X440 = 194480
+Timp execuție kernel: 0.344000 ms
+Timp execuție kernel cu memorie partajată: 0.327000 ms
+Timp execuție CPU: 36.846001 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 477X456 = 217512
+Timp execuție kernel: 0.385000 ms
+Timp execuție kernel cu memorie partajată: 0.364000 ms
+Timp execuție CPU: 40.352001 ms
+Test global PASSED
+Test shared PASSED
+
+Test for matrix size 512X512 = 262144
+Timp execuție kernel: 0.468000 ms
+Timp execuție kernel cu memorie partajată: 0.432000 ms
+Timp execuție CPU: 48.514000 ms
+Test global PASSED
+Test shared PASSED
+
+-----------------

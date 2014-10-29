@@ -1,0 +1,15 @@
+reset
+
+set logscale x
+
+set terminal postscript eps enhanced color
+set output "cuda_gpu_plots.eps"
+set title "cuda analysis"
+set xlabel "Size (matrix width*height)"
+set ylabel "Time (ms)"
+
+
+plot "data/GPU non_shared" using 1:2 lt 1 lw 2 lc 2 title 'GPU non-shared' with lines, \
+     "data/GPU shared" using 1:2 lt 1 lw 2 lc 3 title 'GPU shared' with lines
+
+

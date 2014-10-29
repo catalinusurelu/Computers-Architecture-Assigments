@@ -1,0 +1,160 @@
+Catalin Constantin Usurelu
+333CA
+
+Tema 4 ASC
+
+Rulare:
+	- make clean; make; run_tests.sh (sau folositi fisierul a.out rezultat din faza de make)
+	sau
+	- run.sh trimite job la cluster
+
+Detalii implementare:
+	
+	Varianta non-shared:
+		- Este practic identica cu varianta seriala doar ca aici nu mai avem 2 for-uri
+		  pentru calculul fiecarui element, ci fiecare thread proceseaza un singur element
+		  conform identificatorului threadIdx.x si threadIdx.y
+
+	Varianta shared:
+		- O submatrice a matricei N - cea care trebuie procesata (in enunt notata B) - este copiata 
+		  in memoria shared (Ns) pentru a face calculul mai rapid. Noi cand calculam un element
+		  de pe marginea submatricei din N, avem nevoie si de elemente din afara submatricei (cu un offset de
+		  1 sau 2 in cazul nostru - deoarece KERNEL_SIZE = 5 => KERNEL_SIZE / 2 = 2), deci ne mai trebuie sa copiem in dreptul
+		  fiecarei laturi inca 2 linii. Rezulta o matricea de 20 X 20 ((16 + KERNEL_SIZE/2) X (16 + KERNEL_SIZE/2))
+
+		  Vizual:
+
+		  11111111111111111111
+		  11111111111111111111
+		  11000000000000000011
+		  11000000000000000011
+		  11000000000000000011
+		  ...
+		  ....
+		  11000000000000000011
+		  11111111111111111111
+		  11111111111111111111
+
+		  0 - matricea corespunatoare blocului de procesat
+		  1 - exteriorul - necesar in calcul
+
+	Pentru a copia matricea cat mai eficient (cat mai putine bank conflicts, si branch divergence)
+	procedam in felul urmator:
+
+	Ne gandim ca avem un "bloc de threaduri" (blocul curent)
+
+	Initial, se suprapune ca locatii logice (a se vedea in cod) peste centrul
+	matricei Ns (notat cu 0 in matricea de mai sus).
+	O decalam la stanga si in sus cu 2. Va arata asa (suprapusa peste Ns):
+
+	xxxxxxxxxxxxxxxxoooo
+	xxxxxxxxxxxxxxxxoooo
+	xxxxxxxxxxxxxxxxoooo
+	......
+	......
+	xxxxxxxxxxxxxxxxoooo
+	oooooooooooooooooooo
+	oooooooooooooooooooo
+	oooooooooooooooooooo
+	oooooooooooooooooooo
+
+	x - partea din Ns peste care suprapunem threadurile
+	o - ce a mai ramas
+
+	Acum ca am "suprapus" threadurile peste elementele corespunzatoare, fiecare thread copiaza elemetnul asignat.
+
+	La pasul urmator, folosim ultimele 4 linii de threaduri din blocul de threaduri si le suprapunem peste cele 4 linii
+	din jos-ul matricei Ns, necopiate:
+
+	xxxxxxxxxxxxxxxxoooo
+	xxxxxxxxxxxxxxxxoooo
+	xxxxxxxxxxxxxxxxoooo
+	......
+	......
+	xxxxxxxxxxxxxxxxoooo
+	1111111111111111oooo
+	1111111111111111oooo
+	1111111111111111oooo
+	1111111111111111oooo
+
+	1 - cele patru linii de thread-uri suprapuse.
+
+	La fel, fiecare copiaza elementul asignat
+
+
+	La pasul urmator, suprapunem coltul de 4X4 threaduri din dreapta jos a matricei de threaduri si repetam procedeul:
+	xxxxxxxxxxxxxxxxoooo
+	xxxxxxxxxxxxxxxxoooo
+	xxxxxxxxxxxxxxxxoooo
+	......
+	......
+	xxxxxxxxxxxxxxxxoooo
+	11111111111111112222
+	11111111111111112222
+	11111111111111112222
+	11111111111111112222
+
+	2 - blocul de 4X4 threaduri
+
+
+	In ultimul pas, suprapunem ulimele patru coloane de threaduri din blocul de threaduri si le suprapunem peste cele 4 linii
+	din dreapta matricei Ns, necopiate:
+
+	xxxxxxxxxxxxxxxx3333
+	xxxxxxxxxxxxxxxx3333
+	xxxxxxxxxxxxxxxx3333
+	......
+	......
+	xxxxxxxxxxxxxxxx3333
+	11111111111111112222
+	11111111111111112222
+	11111111111111112222
+	11111111111111112222
+
+	3- cele patru coloane de thread-uri
+
+
+	Si am terminat de copiat elementele destul de eficient. Tinand cont ca fiecare warp are 32 de threaduri si noi folosim practic
+	4 * 16 = 32 de thread-uri pentru copiat linii (notate 1 si 3) nu avem branch divergence. Avem putin la copiat blocul de 4X4,
+	ca nu se executa un warp intreg (doar parti de warp deci avem branch divergence). Si mai avem totusi si ceva divergence cand
+	copiem cele 4 coloane deoarece se executa cate 4 thread-uri / half-warp, deci cate 8 thread-uri per warp.
+
+
+	Pentru calcul, avem acelasi procedeu ca la non-shared doar ca folosim matricile N shared Si M (kernel) shared.
+
+
+
+	Analiza performante:
+		Am inclus un folder (data) cu rezultatea pe care le-am folosit la grafice.
+
+		Deoarece CPU-ul da timpi prea mari de rulare, imi strica graficele si a trebuit sa fac 2 grafice separate pentru
+		a ilustra rezultate (se observa destul de bine ce am facut deci nu cred ca este vre-o problema; plus ca pe forum
+		nu ni s-a raspuns de 2 zile nimic).
+
+		Am un script de plot plot_cpu_gpu_eps care imi face un plot in cuda_cpu_gpu_plots.eps cu toate graficele si in care observam practic
+		doar diferenta dintre CPU si GPU (foarte mare).
+
+		Alt script plot_gpu_eps care face un plot in cuda_gpu_plots.eps cu diferentele din varianta shared si non-shared.
+
+
+		Diferentele intre CPU si GPU sunt destul de evidente si logice datorita paralelismului aproape inexistent fata de GPU.
+		Obtinem un speedup de aproape 100X pe GPU varianta non-shared fata de CPU.
+
+
+		Acum, intre variantele shared si non-shared nu prea am obtinut diferente mari. Varianta shared este doar putin mai buna
+		la testele mai mici dar per total nu este semnificativ mai buna.
+		Sincer, am citit destul de multa documentatie despre CUDA si exemple de implementari shared si non-shared cu analize
+		de performanta si chiar nu prea imi dau seama care este problema, am avut grija sa nu am deloc bank conflicts si
+		sa am un minim de branch divergence.
+
+		Ma rog, am mai facut niste teste pe variante mai mari si se obtin diferente ceva mai mari dar nu mai mult de 25%.
+
+		Nu imi dau seama daca scopul era sa obtinem performante semnificativ mai bune pe shared sau doar sa respectam enuntul, adica
+		sa ne dea PASSED si sa memoram matricea kernel in memoria shared si o parte din matricea B in shared (si evident sa le 
+		folosim in calcul :) ).
+
+
+
+
+
+

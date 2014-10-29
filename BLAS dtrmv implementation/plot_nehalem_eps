@@ -1,0 +1,15 @@
+reset
+
+set terminal postscript eps enhanced color
+set output "plots/nehalem_plots.eps"
+set title "Nehalem analysis"
+set xlabel "Size (matrix width/height)"
+set ylabel "Time (s)"
+
+
+plot 'data/nehalem_blas' using 1:2 lt 1 lw 2 lc 1 title 'Nehalem blas' with lines, \
+     'data/nehalem_neoptimizat' using 1:2 lt 1 lw 2 lc 2 title 'Nehalem neoptimizat' with lines, \
+     'data/nehalem_optimizat' using 1:2 lt 1 lw 2 lc 3 title 'Nehalem optimizat' with lines, \
+     'data/nehalem_optimizat_flags' using 1:2 lt 1 lw 2 lc 4 title 'Nehalem optimizat flags' with lines
+
+

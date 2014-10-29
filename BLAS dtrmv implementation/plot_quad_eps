@@ -1,0 +1,15 @@
+reset
+
+set terminal postscript eps enhanced color
+set output "plots/quad_plots.eps"
+set title "Quad analysis"
+set xlabel "Size (matrix width/height)"
+set ylabel "Time (s)"
+
+
+plot 'data/quad_blas' using 1:2 lt 1 lw 2 lc 1 title 'Quad blas' with lines, \
+     'data/quad_neoptimizat' using 1:2 lt 1 lw 2 lc 2 title 'Quad neoptimizat' with lines, \
+     'data/quad_optimizat' using 1:2 lt 1 lw 2 lc 3 title 'Quad optimizat' with lines, \
+     'data/quad_optimizat_flags' using 1:2 lt 1 lw 2 lc 4 title 'Quad optimizat flags' with lines
+
+

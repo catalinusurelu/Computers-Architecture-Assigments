@@ -1,0 +1,141 @@
+Usurelu Catalin Constantin
+333 CA
+
+Tema 2 ASC - Implementarea operatiei dtrmv
+
+0. Fisierele facute de mine cu rezultate sunt in folderul /data iar ploturile in /plots
+
+1.Scripturi:
+	Scripturi de rulare a programului cu diversi parametri (marime matrice, varianta - optimizat, original, neoptimizat etc.)
+	si care redirecteaza outputul in fisiere cu numele sugestive pentru fiecare arhitectura si varianta:
+		- exec_script_nehalem.sh
+		- exec_script_opteron.sh
+		- exec_script_quad.sh
+	
+	Script de trimitere joburi pe cluster pentru fiecare arhitectura:
+		- run.sh
+
+	Scripturi pentru gnuplot:
+		- plot_all_eps
+		- plot_nehalem_eps
+		- plot_opteron_eps
+		- plot_quad_eps
+
+
+2.Makefile:
+	Reguli:
+		build: compileaza binare pentru toate arhitecturile (nehalem_main, opteron_main, quad_main si 
+		        variantele cu flaguri de optimizare activate nehalem_main_flags, opteron_main_flags,
+		        quad_main_flags)
+
+		build_nehalem: compileaza binar pentru nehalem
+		build_opteron: compileaza binar pentru opteron
+		build_quad: compileaza binar pentru quad
+
+		build_nehalem_with_flags: compileaza binar pentru nehalem cu flaguri de optimizare activate
+		build_opteron_with_flags: compileaza binar pentru opteron cu flaguri de optimizare activate
+		build_quad_with_flags: compileaza binar pentru quad cu flaguri de optimizare activate
+ 
+		run: trimite job-uri la cluster (ruleaza toate binarele cu toti parametrii posibili (size + varianta functie
+		     apelata)) si redirecteaza outputul in fisiere cu nume sugestive pentru fiecare arhitectura si varianta).
+		     Fisierele rezultate se afla in directorul /data.
+
+		submit-job: acelasi ca run (defapt run apeleaza submit-job)
+
+	make-plot: apeleaza scripturile pentru gnuplot si deseneaza in format eps, pentru fiecare arhitectura in parte,
+	           graficele. Graficele sunt desenate in radacina si au extensia .eps
+			   scriputrile apelate: plot_nehalem_eps, plot_opteron_eps, plot_quad_eps, plot_all_eps
+
+			   Rezultatele vor fi puse in directorul /plots:
+			   	- nehalem_plots.eps
+			   	- opteron_plots.eps
+			   	- quad_plots.eps
+			   	- all_plots.eps
+
+	draw-plot: make-plot
+
+	clean: sterge binare, si fisiere de output. Atentie, nu sterge directorele ci doar continutul lor (s-ar putea
+	       sa incurce la rulare, ca scripturile se asteapta ca acele directoare se exista)
+
+3.	Pentru rulare recomand secventa de operatii: make build, make run, make draw-plot.
+
+	De asemenea, in folderul out este afisat de la cluster outputul pentru stderr (aici afisez daca rezultatul meu este corect
+	(adica la fel ca functia dtrmv din blas) sau nu. Stiu ca stderr e doar pentru erori, dar cum am redirectat stdout in fisiere,
+	nu pot afisa aiurea mesaje de OK in aceste fisiere).
+
+4. Rulare executabile de mana: ./nume_executabil dimensiune_matrice varianta
+								 varianta = blas | neoptimizat | optimizata
+								 nume_executabil = nehalem_main | opteron_main | quad_main |
+								  				   nehalem_main_flags | opteron_main_flags | quad_main_flags
+
+
+5.	Detalii implementare: Am ales sa implementez operatia dtrmv pentru cazul in care avem matrice inferior triunghiulara.
+						  Matricea o generez cu valori random (dimensiunea matricei o dam ca parametru programului).
+						  De asemenea, pentru a verifica faptul ca intorc rezultatul corect, execut si dtrmv din blas
+						  si compar cu ce am obtinut eu pentru a vedea daca fac bine.
+
+
+
+6.	Explicatii varianta optimizata: Pentru a optimiza implementarea mea am facut urmatoarele lucruri:
+		- am folosit registrii pentru variabilele care sunt folosite extrem de des (acumulatori - sum)
+		- am optimizat accesul la vectori -> nu mai accesez vectori asa A[i * N + j], unde avem o inmultire
+		  si o adunare, ci fac un pointer catre A pe care il incrementez la fiecare pas corespunzator, la 
+		  fel ca in laborator.
+		- inmultesc mai multe linii in paralel. Astfel, tin mai mult timp ocupat unitatile in virgula mobila
+		  in timp ce se executa si operatii pe unitatile care se ocupa cu intregi (aceste unitati sunt independente
+		  deci e bine sa le paralelizam). De asemenea, tinand cont ca vectorul X este folosit acum de toate
+		  liniile pe care le inmultesc, se ajunge la o localitate temporala mai buna a lui X (e ca un loop fusion).
+		  Aceasta optimizare permite si vectorizarea automata a operatiilor.
+		- Implementez loop unrolling dinamic (matricile sunt alocate dinamic, nu se poate face la compilare) folosind
+		  un algoritm asemanator lui "Duff's device". Astfel, cand inmultesc o linie a matricii cu vectorul, nu fac
+		  asta element cu element, ci inmultesc mai multe blocuri de elemente in aceeasi instructiune. Asftel, fiind
+		  mai putine comparatii in for, minimizez penalizarea la branch-prediction, sar peste operatii de incrementare
+		  a contorului pentru for, si ajut procesorul sa fac automat prefetching.
+
+		Flaguri:
+			- am activat flagul -O3 care imi activeaza optimizarile necesare pentru vectorizare
+			- flagul march=native activeaza optimizarile de tip sse si de asemenea informeaza compilatorul
+			  de configuratia exacta a procesorului (numar registre, cache size, line size etc...) astfel
+			  incat sa fie compilat in mod optim pentru procesorul respectiv.
+
+		Datorita modului cum accesez blocurile (mai multe randuri deodata, sau executand mai multe operatii intr-o instructiune)
+		am lasat niste comenturi in cod sa se observa cam de unde rezulta (initial am facut programul sa mearga strict pentru dimensiune
+		multiplu de 8, nefiind necesare modificari explicite). De asemenea primele 3 linii din matrice le fac in mod neoptimizat deoarece
+		nu se potriveste cu restul codului (dupa cum am mentionat) iar oricum nu aveam ce optimiza pentru 6 calcule.
+
+
+7. Analiza Rezultate
+	- Intre varianta neoptimizata si implementarea dtrmv din Atlas:
+	  Pentru toate cele 3 arhitecturi se observa diferente foarte mari intre varianta neoptimizata si cea din Atlas,
+	  varianta din Atlas fiind in jur de 6-7 ori mai rapida pe Nehalem, de 3-4 ori mai rapida pe Quad si de 8 ori mai rapida
+	  pe Opteron. Acest lucru este destul de logic, tinand cont de optimizarile facute probabil in implementarea din Atlas
+	  in comparatie cu implementarea mea neoptimizata.
+
+	- Intre varianta optimizata manual si cu flaguri si implementare dtrm din Atlas:
+	  Compar doar varianta optimizata manual + compilata cu flaguri, deoarece acestea fac optimizarile mele mai evidente.
+	  Rezultatele obtinute de implementarea mea sunt aproape identice cu cele din Atlas.
+	  In cazul arhitecturii Quad varianta mea este chiar putin mai rapida.
+	  Pe Opteron se observa niste fluctuati pe grafic in functie de dimensiunea matricii pentru implementarea Atlas, pe cand
+	  implementarea mea este "smooth". In cateva puncte si aici varianta mea depaseste varianta din Atlas, dar la testul cu
+	  matricea de dimensiune 24000 varianta din Atlas este mai rapida.
+	  Pe Nehalem se observa ca implementarea mea este foarte apropiata de cea din atlas, cele doua curbe aproape suprapunandu-se.
+	  Totusi, pe cel mai mare test, abia depaseste 95% din performanta variantei din Atlas.
+
+	- Intre arhitecturi:
+	  Daca ar fi sa le ordonez crescator ca performanta (toate implementarile sunt ordonate dupa aceasta ordonare, mai putin 
+	  pentru varianta neoptimizata) ar fi in felul urmator:
+	  1. Quad
+	  2. Opteron
+	  3. Nehalem (cel mai rapid)
+
+	  Totusi Opteron se comporta mai prost decat Quad pe varianta neoptimizata. Este posibil ca implementarea vectorizarilor
+	  si arhitectura in general sa fie mai buna decat Quad, acest lucru observandu-se doar cand optimizam codul.
+	  Diferentele de perfomanta intre Quad si Nehalem sunt evidente mai mult din diferenta de frecventa (2 Ghz vs 2.5-2.8 Ghz),
+	  si probabil din alte imbunatatiri aduse de arhitectura mai noua, Nehalem.
+	  Opteron, desi este tactat la aceeasi frecventa ca si Nehalem, este vizibil mai slab. Posibil din cauza cache-ului L2 mai mic
+	  (6 * 512 KB vs 12 MB) dar si din cauza diferentelor la nivel de arhitectura, cele doua procesoare apartinand unor companii diferite.
+
+
+8. BONUS
+	Varianta optimizata si cu flaguri obtine in general performante de peste 95% iar, fata de implementarea Atlas pe Quad este chiar mai buna
+	(pentru toate dimensiunile testate).

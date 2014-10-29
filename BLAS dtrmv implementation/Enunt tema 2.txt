@@ -1,0 +1,38 @@
+Se cere implementarea operatiei dtrmv din BLAS (http://www.netlib.org/blas/) intr-un program realizat de dumneavoastra in limbajul C. Operatia realizeaza produsul general intre o matrice si un vector pentru numere in virgula mobila cu dubla precizie dupa formula x:= A*x sau x:= A**T*x, cu x vector si A o matrice n x n superior sau inferior triunghiulara..
+
+Se are in vedere utilizarea tuturor celor 3 arhitecturi de procesoare existente in clusterul nostru: Xeon Quad, Xeon Nehalem, AMD Opteron.
+Se va utiliza un format Input/Output standardizat (indiferent de dimensiunea problemei), asa cum este specificat in bibliotecile BLAS. Structurile de date sunt create si initializate de dumneavoastra in program. 
+Graficele de prezentare a rezultatelor vor utiliza utilitarul gnuplot - disponibil pe fep.grid.pub.ro. Exemple de utilizare gnuplot sunt disponibile in sectiunea de informatii utile de mai jos si in laboratorul 4.
+Se va folosi doar compilatorul Gnu 4.4.6 - disponibil fara a fi incarcat ca modul separat pe toate platformele din cluster. 
+Verificarea se va face (explicit de dumneavoastra pentru fiecare cod) cu ATLAS-ul (v3.10.1) pe toate cele trei arhitecturi disponibile AMD Opteron, Xeon Quad si Xeon Nehalem.
+Pentru masurarea performantelor se vor lua un considerare doar timpii kernel-urilor computationale (adica call-ul efectiv al rutinei dtrmv) si nu timpii totali de rulare (inclusiv initializari/compararea rezultatelor, etc). Va rugam sa alegeti dimensiunea problemei (matricea A si implicit vectorul x asa incat rularea kernelului cu ATLAS-BLAS sa dureze maxim 2 secunde / rulare. Pentru a obtine rezultate relevante si a putea interpreta mai usor aceste rezultate, va sugeram sa rulati teste pentru mai multe dimensiuni ale problemei - cu fiecare test in jur de 2-3 secunde - si sa utilizati apoi aceste date in cadrul graficelor gnuplot. Va rugam sa nu generati teste care ruleaza mai mult de 5-7 secunde cu orice kernel BLAS utilizat.
+Punctajul va fi distribuit astfel:
+
+(10p) Implementarea "de mana" a operatiei BLAS dtrmv.
+(10p) Utilizarea rutinei din BLAS (ATLAS) care rezolva aceeasi problema.
+(30p) Compararea timpilor de la punctul 1 cu implementarea BLAS (de la punctul 2) pe arhitecturile quad, nehalem si opteron cu ajutorul unor grafice in gnuplot.
+(30p) Implementarea unei versiuni imbunatatite si compararea cu implementarea BLAS pe toate cele trei arhitecturi disponibile pe cluster, utilizand grafice in gnuplot. Aceasta imbunatatire are in vedere una sau mai multe dintre urmatoarele optiuni:
+  a. Utilizarea flag-urilor generice de optimizare din compilatoare peste base-run de la punctul 1.
+  b. Utilizarea flag-urilor de compilare specifice ce adreseaza unitatile de vectorizare (SSE), prefetching, arhitectura procesorului (dimensiunea cache-urilor, numarul registrilor, etc).
+
+  c. Implementarea unei versiuni imbunatatite "de mana" ce duce la performante mai bune decat cea de la punctul 1.
+
+ 5. (20p) Readme in care se discuta rezultatele observate la punctele 3 si 4. Discutia are loc pe baza graficelor in gnuplot (ce pot fi exportate si ca eps). Discutati si motivati diferentele de performanta (daca ele exista) intre cele trei arhitecturi de procesoare utilizate. Inexistenta graficelor gnuplot aduce dupa sine o scadere de minim 10p pentru fiecare din punctele 3 si 4.
+
+ 6. (maxim 20p) Bonus: obtinerea unor rezultate pentru versiunea implementata de dumneavoastra ce atinge peste 95% din performanta BLAS (ATLAS), sau instalarea in contul propriu de pe cluster si utilizarea la punctul 2 altei biblioteci BLAS in afara de ATLAS (deja instalata de noi).
+
+Informatii utile:
+
+Un exemplu de arhiva cu scripturi utile pentru rulare poate fi gasit la aceasta locatie.
+BLAS: http://www.netlib.org/blas/
+ATLAS: http://math-atlas.sourceforge.net/
+Intel MKL: http://software.intel.com/en-us/articles/intel-mkl/
+GNU Scientific Library (GSL): http://www.gnu.org/software/gsl/manual/html_node/GSL-BLAS-Interface.html
+Gnuplot Tutorials:
+http://www.cs.hmc.edu/~vrable/gnuplot/using-gnuplot.html
+http://jartsa.awardspace.com/gnuplot/index.html
+Exemple de matrice de intrare ce va pot fi de folos (acum sau in viitor): http://math.nist.gov/MatrixMarket/
+Clusterguide cs.pub.ro:
+
+Clusterguide v4.0
+Tema propusa de Emil Slusanschi, Razvan Dobre si Alexandru Herisanu.

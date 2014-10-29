@@ -1,0 +1,59 @@
+Catalin Constantin Usurelu
+333CA
+
+Tema 1 - ASC
+
+    In cea mai mare parte am pus suficiente comentarii in cod pentru a explica
+    totul lafiecare pas.
+
+    Voi prezenta pe scurt ideile si implementarea.
+
+    Algoritmul se bazeaza destul de mult pe paradigma Replicated Workers.
+    Clasa care se ocupa cu gestionarea worker-ilor si routarea joburilor catre
+    workeri (printr-o coada sincronizata partajata de workeri) este JobManager.
+    Fiecare node porneste workeri care proceseaza requesturi de la alte noduri.
+    Fiecare worker lucreaza cu o singura conexiune la un moment dat.
+    Pornim exact un numar de woreri egal cu numarul de conexiuni suportate de
+    datastore, sau, in caz ca acest numar este infinit, pornim un numar de
+    workeri egal cu numarul de noduri (de obicei nu se fac mai multe requesturi
+    simultane de atat).
+
+    In clasa Node pornim un alt thread care se ocupa cu algoritmul in sine.
+    Pentru acesta, clasa Node pune la dispozitie un mediu de comunicare
+    folosind 2 cozi sincronizate (una pentru requesturi al caror raspuns este
+    asyncron iar alta (de dimenisune 1) care se ocupa de requesturi sincrone,
+    adica cele pentru care vrem sa ni se dea rezultatul pe loc).
+    Pentru cererile asincrone raspunsul se trimite ca mesaj nodului destinatine,
+    iar cele sincrone returneaza raspunsul sincron, folosind o functie din
+    Node (get_A, put_B etc...). De multe ori ne intereseaz sa aflam raspunsul
+    la o cerere sincron, adica sa nu trecem mai departe fara sa aflam raspunsul.
+    Doar un node care isi interogheaza propriul datastore face cereri sincrone.
+
+    Algoritmul in sine este o implementare a celui de pe wikipedia (ATENTIE,
+    folosesc nume de variabile asemanatoare cu acelea de pe wikipedia gen
+    A[i][j] ca sa retin cereri de Get_A de exemplu, dar NU FAC CACHE, le folosesc
+    doar pentru a fi mai lizibil codul. As putea face direct apeluri de functii
+    - cereri sincrone, dar ar arata urat (impartie, adunare, inmultire de
+    functii...)).
+    La fiecare pas (k) nodul corespunzator pasului cauta pivotul si isi
+    interschimba linia cu acea a pivotului (trimit un JOB de swap la workeri,
+    iar acestia comunica intre ei pentru a il rezolva si a trimis raspunsuri
+    tuturor nodurilor cand se termina, ca nodurile sa se poata sincroniza).
+    Exista bariere la fiecare pas principal al algoritmului pentru sincronizare
+    (descriere in comentarii cod). Celelalte noduri, asteapta operatia de swap,
+    iar apoi fac cererea pentru primul element al liniei pivot (cea
+    corespunzatoare pasului curent - k - ) ca sa isi calculeze un factor.
+    Apoi fac cereri pentru elementele pivotului, astept raspunsuri (fiecare
+    raspuns are un camp column care spune pentru ce coloana este - ATENTIE: eu
+    folosesc niste foruri gen for j in xrange(k + 1, self.node.matrix_size) dar
+    asta nu inseamna ca astept reply pentru linia aceea, ci este doar pentru
+    lizibilitatea codului si pentru a corespunde algorimului neparalelizat - ca
+    mentalitate) si in final practic totul este echivalent cu inmultirea liniei
+    pivot cu factor si scaderea ei din linia curenta pentru a face zerouri sub
+    diagonala principala).
+
+    In ultima faza - incep cu ultimul nod, calculez X-ul corespunzator lui,
+    si trimit valoarea lui x celorlalte noduri pentru ca si ele sa isi calculeze
+    x-ul. Practic fiecare nod ajunge sa astepte x-urile necesare de la celelalte
+    noduri iar apoi si-l calculeaza pe al sau.
+

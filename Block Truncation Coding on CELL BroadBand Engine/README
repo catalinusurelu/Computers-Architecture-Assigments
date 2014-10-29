@@ -1,0 +1,200 @@
+Student: Usurelu Catalin Constantin
+Grupa: 333CA
+
+
+Tema 3 ASC
+
+1. Rulare si structura directoare
+    
+    Structura de directoare este identica celei din laborator:
+    ./ppu/*
+    ./spu/*
+    ./Makefile
+
+    Executabilul rezultat tema3 se afla in folderul ppu
+
+2. Implementare
+
+    Pentru a simplifica transferurile DMA, citirea unui fisier pgm o fac in
+blocuri de 8X8 in loc sa citesc tot fisierul pgm intr-o matrice. Am modificat
+fisierul de la varianta seriala pentru citire de pgm-uri pgm.c pentru a face
+astfel citirea.
+    Altfel ar fi fost complicat transferul DMA, ar fi trebui sa fac cate 8
+transferuri succesive pentru a obtine niste blocuri (un bloc are 8 linii
+si ne trebuie un bloc intreg) si pe deasupra ar fi trebuit sa tratez cazurile
+in care transfurile DMA pentru task-ul current ar acoperii mai mult linii din
+imagine (si mai rau, transferul nu ar incepe sau s-ar termina fix la inceputul/sfarsitul
+liniei).
+
+    Ideea de paralelizare:
+        - stiu dimensiunea unui bloc de pixeli comprimat (e mai mare decat a unui
+          bloc de pixeli citit ca acesta mai contine 2 char-uri a,b, deci il folosesc
+          pe post de upper bound)
+        - impart 16000 la acea dimensiunea si obtin numarul maxim de blocuri
+          transferabile prin DMA
+
+        - initial fiecare SPU e pornit si primeste prin DMA o strucutra cu datele initiale 
+        - stiu numarul total de blocuri din imagine
+        - impart acest numar la numarul de SPU-uri si obtin astfel cate un task
+        - fiecare SPU primeste un task de forma [block_range_start, block_range_end)
+          prin mailboxuri
+        - astfel fiecare SPU stie de la inceput ce trebuie sa faca si mai da doar
+          un reply prin mailbox PPU-ului cand termina o faza (initial comprimare)
+          si repeta procesul pentru faza ramasa (decomprimare)
+
+        - la terminarea unei faze, toate threadurile asteapta la o bariera
+        - dupa ce ies din barierea threadul 0 incrementeaza un contor de faze
+        - se intra in alta bariera (ca sa fim siguri ca threadul 0 a incrementat
+          contorul de faze) iar dupa bariera se verifica daca tocmai am terminat ultima faza
+          caz in care terminam thread-ul.
+
+        - teoretic calculele sunt identice deci SPU-urile ar trebui sa proceseze
+          totul cam cu aceeasi viteza (desi voi discuta la analiza problemele
+          care mi le-a pus bottleneck-ul generat de bus-ul shared pe care se fac
+          transferurile DMA)
+
+    Operatii vectoriale:
+        - in principiu am descris in cod detaliile
+        - ideea de baza: o linie dintr-un bloc are 8 short int-uri deci poti
+          executa de obicei un calcul vectorial pe o linie intreaga
+        - media o calculez folosind adunari vectoriale (adun intr-un vector
+          suma fiecare linie) si imparintd suma totala la numarul de elemente din bloc
+        - la stdev a trebui sa fac conversii de la short int la float pentru ca
+          imi trebuie tipuri de acelasi fel si pe deasupra un vector de float
+          are 4 float-uri iar unul de short-int-uri are 8 deci procesarea
+          unei linii o fac in 2 faze (am explicat in cod)
+        - calcularea bitplane-ului (am explicat mai bine in cod):
+           - pentru partea de comparare folosesc spu_cmpgt
+           - rezultatele le extrag prin spu_gather (ne intereseaza doar 0 sau 1,
+             dar spu_cmpgt scrie 11111... )
+           - spu_cntb numar numar-ul de 1 rezultate in urma procesului de mai sus
+           - spu_sel - pentru rezultatul final la fel ca la gather, vrem doar 0 si
+                       1, deci folosesc spu_sel pentru a face acest lucru (se intelege
+                       in cod)
+        - decompresia foloseste practic un spu_sel ca mai sus
+
+
+    Transferuri DMA:
+        - fiecare SPU stie (primeste) numarul maxim de blocuri per transfer
+        - fiecare SPU primeste un task range [start, end] de blocuri
+        - intr-un while citim cate n blocuri (numarul maxim posibil) pornind
+          de la task_range_start pana la task_range_end
+        - identic si la compresie si la decompresie
+        - Double buffering-ul se face simplu ca la laborator
+
+    Analiza performantei
+
+    Incep prin a mentiona problemele pe care le-am avut si explicatii (daca ati
+    obtinut rezultate mai bune astept feedback cu detalii, dar nu prea cred ca
+    gresesc).
+
+    Initial am implementat totul mult mai frumos folosind paradigma producer-consumer
+    si folosind multe sincronizari. Totul scala bine la 1 2 4 core-uri dar la 8
+    obtineam rezultate identice ca la 4.
+    Dupa o zi de teste am concluzionat ca scheduling-ul de threaduri si mutexuri
+    nu e fair si din cauza asta sunt diferentele asa mari.
+
+    Am rescris codul in varianta curenta (fiecare SPU primeste aceeasi cantitate de
+    informatie de procesat deci nu ar trebui sa apara diferente mari in timpul de rulare
+    pe fiecare SPU).
+
+    In final am observat acelasi comportament. Dupa ce am implementat double buffering-ul
+    am observat ca asta se intampla chiar mai devreme de 4 thread-uri.
+
+    Dupa inca o zi de teste, m-am gandit sa dezactivez partea de compresie/decompresie si sa
+    las doar comunicarea (mailbox + dma). Am observat ca acesta nu scaleaza, semn ca
+    ar fi un bottlenck. In general, pentru imaginea 3 am obtinut o limita (efectuand
+    doar operatii dma + mailbox) in jur de 0.17 secunde pentru dma simplu si 0.15 secunde
+    pentru double buffering. Asta indiferent de numarul de SPU-uri !
+    Am testat si cu laboratoarele acest lucru si am obtinut aceleasi rezultate.
+    Dupa ce am citit pe internet mai mult am inteles ca DMA-urile folosesc o magistrala
+    comuna (EIB) pentru a face aceste transferuri si exista si anumite limitari
+    de transferuri paralele (LINK mai jos cu o carte cu explicatii mai detaliate) si am gasit
+    si pe un forum niste persoane cu probleme asemanatoare. Am citit si cateva
+    paper-uri cu analiza de performanta DMA pe CELL dar nu m-au ajutat.
+
+
+    Anyways, analiza efectiva (am scris timpii minimi obtinuti dupa mai multe rulari):
+    Am rulat doar pentru img1 si img3 (cea mai mica si cea mai mare imagine). Nu mai
+    avea rost si pentru 2, cele 2 puncteaza destul de bine performanta.
+    Din ce am inteles (inclusiv de pe forum) doar Encoding + Decoding time conteaza
+    ca oricum citirea/scrierea imaginii se face serial si nu avem ce observa la asta.
+
+
+    Imaginea 3 (img3.pgm):
+
+    Varianta seriala:
+    Encoding + Decoding time    Total time
+    3.230906                    4.110289
+
+
+    DMA - simplu
+
+    Nr. SPUs    Encoding + Decoding time    Total time  Speedup(Encoding + Decoding time)
+    1           0.520586                    1.314076    -
+    2           0.295739                    1.078270    1.760288
+    4           0.207230                    1.024854    2.512116
+    8           0.187187                    0.948523    2.781101
+
+
+    DMA - double buffering
+    Nr. SPUs    Encoding + Decoding time    Total time  Speedup(Encoding + Decoding time)
+    Serial
+    1           0.426941                    1.201755    -
+    2           0.234449                    1.021176    1.821039
+    4           0.201149                    0.952214    2.122511
+    8           0.162382                    0.947805    2.629238
+
+    Observam ca varianta de double buffering este mai buna decat cea simpla (in jur de 10% mai buna).
+    Cum double buffering-ul este mai mult o paralelizare la nivel de single-core, perfomanta este
+    in continuare afectata de acel DMA bottleneck, astfel double bufferingul nu ne poate ajuta prea
+    mult. Calculele efectiv dureaza destul de putin, iar transferurile DMA dureaza mult mai mult (la
+    ultimul test pe 8 core-uri obtinusem best case 0.15 doar pentru comunicatii DMA fara calcule,
+    deci restul de 0,011s ar fi calcule, deci dureaza extrem de mult DMA-ul in comparatie cu
+    procesarea efectiva).
+
+    Speedup-ul desi nu este liniar este desult de semnificativ.
+
+    Observatie - am facut si niste teste pe 16 nuclee dar m-am lasat batut deoarece
+    obtineam rezultate mai proaste ca pe 8 nuclee, probabil erau mult prea multe
+    transferuri DMA care se bateau pe magistrala.
+
+
+
+    Imaginea 1 (img1.pgm):
+
+    Varianta seriala:
+    Encoding + Decoding time    Total time
+    1.166271                     1.563238
+
+    DMA - simplu
+    Nr. SPUs    Encoding + Decoding time    Total time  Speedup(Encoding + Decoding time)
+    1           0.177849                    0.462393    -
+    2           0.102978                    0.393418    1.727058
+    4           0.096389                    0.370114    1.845117
+    8           0.085589                    0.371906    2.077942
+
+        DMA - double buffering
+    Nr. SPUs    Encoding + Decoding time    Total time  Speedup(Encoding + Decoding time)
+    1           0.143285                    0.422746    -
+    2           0.084203                    0.349178    1.7016614 
+    4           0.082247                    0.347785    1.7421304
+    8           0.082831                    0.375369    1.7298475
+
+    Pe aceasta imagine mai mica, obtinem rezultate destul de proaste, speedup-ul
+    este destul de mic.
+
+    Double buffering-ul "se simte" din nou, mai ales pe 8 nuclee.
+
+    Banuiesc ca din moment ce calculele sunt mai putine (si dureaza mult mai putin
+    ca partea de DMA), observam mai mult performanta DMA-ului decat orice altceva,
+    astfel ca nu obtin rezultate la fel de bune ca pentru imaginea 3.
+
+
+
+    Astept feedback in legatura cu aceste rezultate, am muncit foarte mult la tema asta
+    si vreau sa stiu cum se comporta varianta oficiala (eventual cu niste timpi de rulare).
+
+
+
+    LINK: http://books.google.ro/books?id=N9UQxb_wnioC&pg=PA188&lpg=PA188&dq=parallel+dma+eib+performance&source=bl&ots=aGQoje8Bd5&sig=f6A_DWicleaXJfcKva9OCC3HVLg&hl=ro&sa=X&ei=BMpkU_TLPK_y7AbI4IDoCg&ved=0CIkBEOgBMAk#v=onepage&q=parallel%20dma%20eib%20performance&f=false
